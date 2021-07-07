@@ -1,0 +1,638 @@
+        -:    0:Source:C:/Users/ilya/CLionProjects/projectConsist4/consist.hpp
+        -:    0:Graph:C:\Users\ilya\CLionProjects\projectConsist4\cmake-build-debug-coverage\CMakeFiles\projectConsist4.dir\main.cpp.gcno
+        -:    0:Data:C:\Users\ilya\CLionProjects\projectConsist4\cmake-build-debug-coverage\CMakeFiles\projectConsist4.dir\main.cpp.gcda
+        -:    0:Runs:1
+        -:    0:Programs:1
+        -:    1://
+        -:    2:// Created by илья on 12.05.2021.
+        -:    3://
+        -:    4:
+        -:    5:#ifndef PROJECTCONSIST4_CONSIST_HPP
+        -:    6:#define PROJECTCONSIST4_CONSIST_HPP
+        -:    7:
+        -:    8://
+        -:    9:// Created by илья on 05.03.2021.
+        -:   10://
+        -:   11:
+        -:   12:
+        -:   13:#include <iostream>
+        -:   14:#include <queue>
+        -:   15:
+        -:   16:template<typename T>
+        -:   17:class consList;
+        -:   18:
+        -:   19:template<typename T>
+        -:   20:class consIterator;
+        -:   21:
+        -:   22://---node---------------------------------------------------------------------------------------------------------------
+        -:   23:
+        -:   24:template<typename T>
+        -:   25:class consNode {
+        -:   26:public:
+        -:   27://    consNode() : next(nullptr), prev(nullptr), data(nullptr), ref_count(0) {};
+function _ZN8consNodeIiEC1Ev called 16 returned 100% blocks executed 100%
+       16:   28:    consNode() = default;
+        -:   29:
+        -:   30://    consNode(T data) : next(nullptr), prev(nullptr), data(data), ref_count(0) {}
+function _ZN8consNodeIiEC1Eii called 47 returned 100% blocks executed 100%
+       47:   31:    consNode(T data, int ref_count) :
+       47:   32:            data(std::move(data)), prev(this), next(this), deleted(false), ref_count(ref_count) {}
+       47:   32-block  0
+call    0 returned 47
+        -:   33:
+        -:   34:    consNode(T data, consList<T> *list) : consNode(data, 2) {}
+        -:   35://    consNode(const consNode<T> &) = delete;
+        -:   36:
+        -:   37://    void operator=(const consNode<T> &) = delete;
+        -:   38:
+        -:   39:private:
+        -:   40:    T data;
+        -:   41:    consNode *next, *prev;
+        -:   42:    bool deleted{};
+        -:   43:    unsigned int ref_count{};
+        -:   44:
+        -:   45:    friend class consList<T>;
+        -:   46:
+        -:   47:    friend class consIterator<T>;
+        -:   48:};
+        -:   49:
+        -:   50://---iterator-----------------------------------------------------------------------------------------------------------
+        -:   51:
+        -:   52:template<typename T>
+        -:   53:class consIterator {
+        -:   54:public:
+        -:   55:
+        -:   56://    consIterator() noexcept = default;
+        -:   57:
+function _ZN12consIteratorIiEC1ERKS0_ called 138 returned 100% blocks executed 100%
+      138:   58:    consIterator(const consIterator &iter) : current(iter.current) {
+      138:   59:        consList<T>::refCountInc(current);
+      138:   59-block  0
+call    0 returned 138
+      138:   60:    }
+        -:   61:
+function _ZN12consIteratorIiEC1EP8consNodeIiE called 121 returned 100% blocks executed 100%
+      121:   62:    explicit consIterator(consNode<T> *newNode) : current(newNode) {
+      121:   63:        consList<T>::refCountInc(current);
+      121:   63-block  0
+call    0 returned 121
+      121:   64:    }
+        -:   65:
+function _ZN12consIteratorIiED1Ev called 259 returned 100% blocks executed 100%
+      259:   66:    ~consIterator() {
+      259:   67:        if (current) {
+      259:   67-block  0
+branch  0 taken 259 (fallthrough)
+branch  1 taken 0
+      259:   68:            consList<T>::refCountDec(current);
+      259:   68-block  0
+call    0 returned 259
+      259:   69:            if (current->ref_count == 0) current = nullptr;
+branch  0 taken 2 (fallthrough)
+branch  1 taken 257
+        2:   69-block  0
+        -:   70:        }
+      259:   71:    }
+        -:   72:
+function _ZN12consIteratorIiEaSERKS0_ called 4 returned 100% blocks executed 100%
+        4:   73:    consIterator &operator=(const consIterator &right) {
+        4:   74:        consList<T>::refCountDec(current);
+        4:   74-block  0
+call    0 returned 4
+        4:   75:        this->current = right.current;
+        4:   76:        consList<T>::refCountInc(current);
+call    0 returned 4
+        4:   77:        return *this;
+        -:   78:    }
+        -:   79:
+function _ZNK12consIteratorIiEdeEv called 45 returned 100% blocks executed 100%
+       45:   80:    T &operator*() const {
+        -:   81:        /*if (current->deleted) throw (std::out_of_range("Error 1: Invalid index!"));*/
+       45:   82:        return current->data;
+       45:   82-block  0
+        -:   83:    }
+        -:   84:
+        -:   85:    /*T *operator->() const {
+        -:   86:        if (current->deleted)
+        -:   87:            throw (std::out_of_range("Error 2: Invalid index!"));
+        -:   88:        return &(current->data);
+        -:   89:    }*/
+        -:   90:
+function _ZN12consIteratorIiEppEv called 23 returned 100% blocks executed 67%
+       23:   91:    consIterator operator++() {
+      23*:   92:        if (!current->next) throw (std::out_of_range("Error 3: Invalid index!"));
+       23:   92-block  0
+branch  0 taken 0 (fallthrough)
+branch  1 taken 23
+    %%%%%:   92-block  1
+call    2 never executed
+call    3 never executed
+branch  4 never executed
+branch  5 never executed
+    %%%%%:   92-block  2
+call    6 never executed
+    $$$$$:   92-block  3
+call    7 never executed
+       23:   93:        current = current->next;
+       23:   94:        if (current) {
+       23:   94-block  0
+branch  0 taken 23 (fallthrough)
+branch  1 taken 0
+       24:   95:            while (this->current->deleted && current->next) current = current->next;
+       24:   95-block  0
+branch  0 taken 1 (fallthrough)
+branch  1 taken 23
+        1:   95-block  1
+branch  2 taken 1 (fallthrough)
+branch  3 taken 0
+        1:   95-block  2
+        -:   96:        }
+       23:   97:        return *this;
+       23:   97-block  0
+call    0 returned 23
+        -:   98:    }
+        -:   99:
+function _ZN12consIteratorIiEppEi called 9 returned 100% blocks executed 57%
+        9:  100:    consIterator operator++(T) {
+       9*:  101:        if (!current->next) throw (std::out_of_range("Error 4: Invalid index!"));
+        9:  101-block  0
+branch  0 taken 0 (fallthrough)
+branch  1 taken 9
+    %%%%%:  101-block  1
+call    2 never executed
+call    3 never executed
+branch  4 never executed
+branch  5 never executed
+    %%%%%:  101-block  2
+call    6 never executed
+    $$$$$:  101-block  3
+call    7 never executed
+        9:  102:        consIterator iter(current);
+        9:  102-block  0
+call    0 returned 9
+        9:  103:        if (iter.current->next) {
+branch  0 taken 9 (fallthrough)
+branch  1 taken 0
+        9:  104:            current = iter.current->next;
+        9:  104-block  0
+       9*:  105:            while (current->deleted && current->next) current = current->next;
+        9:  105-block  0
+branch  0 taken 0 (fallthrough)
+branch  1 taken 9
+    %%%%%:  105-block  1
+branch  2 never executed
+branch  3 never executed
+    %%%%%:  105-block  2
+        -:  106:        }
+        9:  107:        return iter;
+        9:  107-block  0
+        9:  107-block  1
+        -:  108:    }
+        -:  109:
+function _ZN12consIteratorIiEmmEv called 9 returned 100% blocks executed 69%
+        9:  110:    consIterator operator--() {
+       9*:  111:        if (!current->prev->prev) throw (std::out_of_range("Error 5: Invalid index!"));
+        9:  111-block  0
+branch  0 taken 0 (fallthrough)
+branch  1 taken 9
+    %%%%%:  111-block  1
+call    2 never executed
+call    3 never executed
+branch  4 never executed
+branch  5 never executed
+    %%%%%:  111-block  2
+call    6 never executed
+    $$$$$:  111-block  3
+call    7 never executed
+        9:  112:        if (current) {
+        9:  112-block  0
+branch  0 taken 9 (fallthrough)
+branch  1 taken 0
+        9:  113:            current = current->prev;
+        9:  113-block  0
+       11:  114:            while (this->current->deleted && current->prev) current = current->prev;
+       11:  114-block  0
+branch  0 taken 2 (fallthrough)
+branch  1 taken 9
+        2:  114-block  1
+branch  2 taken 2 (fallthrough)
+branch  3 taken 0
+        2:  114-block  2
+        -:  115:        }
+        9:  116:        return *this;
+        9:  116-block  0
+call    0 returned 9
+        -:  117:    }
+        -:  118:
+function _ZN12consIteratorIiEmmEi called 1 returned 100% blocks executed 57%
+        1:  119:    consIterator operator--(T) {
+       1*:  120:        if (!current->prev->prev) throw (std::out_of_range("Error 6: Invalid index!"));
+        1:  120-block  0
+branch  0 taken 0 (fallthrough)
+branch  1 taken 1
+    %%%%%:  120-block  1
+call    2 never executed
+call    3 never executed
+branch  4 never executed
+branch  5 never executed
+    %%%%%:  120-block  2
+call    6 never executed
+    $$$$$:  120-block  3
+call    7 never executed
+        1:  121:        consIterator iter(current);
+        1:  121-block  0
+call    0 returned 1
+        1:  122:        if (iter.current->prev) {
+branch  0 taken 1 (fallthrough)
+branch  1 taken 0
+        1:  123:            current = iter.current->prev;
+        1:  123-block  0
+       1*:  124:            while (current->deleted && current->prev) current = current->prev;
+        1:  124-block  0
+branch  0 taken 0 (fallthrough)
+branch  1 taken 1
+    %%%%%:  124-block  1
+branch  2 never executed
+branch  3 never executed
+    %%%%%:  124-block  2
+        -:  125:        }
+        1:  126:        return iter;
+        1:  126-block  0
+        1:  126-block  1
+        -:  127:    }
+        -:  128:
+function _ZeqRK12consIteratorIiES2_ called 2 returned 100% blocks executed 100%
+        2:  129:    friend bool operator==(const consIterator<T> &a, const consIterator<T> &b) {
+        2:  130:        return a.current == b.current;
+        2:  130-block  0
+        -:  131:    }
+        -:  132:
+function _ZneRK12consIteratorIiES2_ called 1 returned 100% blocks executed 100%
+        1:  133:    friend bool operator!=(const consIterator<T> &a, const consIterator<T> &b) {
+        1:  134:        return !(a == b);
+        1:  134-block  0
+call    0 returned 1
+        -:  135:    }
+        -:  136:
+function _ZNK12consIteratorIiEcvbEv called 47 returned 100% blocks executed 100%
+       47:  137:    explicit operator bool() const {
+       47:  138:        return current;
+       47:  138-block  0
+        -:  139:    }
+        -:  140:
+        -:  141://    consIterator operator=() const;
+        -:  142:
+        -:  143:private:
+        -:  144:    consList<T> *container;
+        -:  145:    consNode<T> *current;
+        -:  146:
+        -:  147:    friend class consList<T>;
+        -:  148:};
+        -:  149:
+        -:  150://---list---------------------------------------------------------------------------------------------------------------
+        -:  151:
+        -:  152:template<typename T>
+        -:  153:class consList {
+        -:  154:public:
+function _ZN8consListIiEC1Ev called 8 returned 100% blocks executed 100%
+        8:  155:    consList() : Head(nullptr), Tail(nullptr), size(0) {
+        8:  156:        Tail = new consNode<T>();
+        8:  156-block  0
+call    0 returned 8
+call    1 returned 8
+        8:  157:        Head = new consNode<T>();
+call    0 returned 8
+call    1 returned 8
+        8:  158:        Tail->prev = Head;
+        8:  159:        Head->next = Tail;
+        8:  160:        refCountInc(Head);
+call    0 returned 8
+        8:  161:        refCountInc(Head);
+call    0 returned 8
+        8:  162:        refCountInc(Tail);
+call    0 returned 8
+        8:  163:        refCountInc(Tail);
+call    0 returned 8
+        8:  164:    }
+        -:  165:
+        -:  166://    consList(const consList &iter) = delete;
+        -:  167:
+        -:  168://    consList(consList &&list) = delete;
+        -:  169:
+function _ZN8consListIiEC1ESt16initializer_listIiE called 7 returned 100% blocks executed 89%
+        7:  170:    consList(std::initializer_list<T> list) : consList() {
+        7:  170-block  0
+call    0 returned 7
+    $$$$$:  170-block  1
+call    1 never executed
+       42:  171:        for (auto iter = list.begin(); iter < list.end(); iter++)
+call    0 returned 7
+       42:  171-block  0
+call    1 returned 42
+branch  2 taken 35 (fallthrough)
+branch  3 taken 7
+       35:  171-block  1
+       35:  172:            pushBack(*iter);
+       35:  172-block  0
+call    0 returned 35
+branch  1 taken 35 (fallthrough)
+branch  2 taken 0 (throw)
+        7:  173:    }
+        7:  173-block  0
+        -:  174:
+function _ZN8consListIiED1Ev called 8 returned 100% blocks executed 100%
+        8:  175:    ~consList() {
+        8:  176:        consNode<T> *current = Head;
+        8:  176-block  0
+       65:  177:        while (current != nullptr) {
+       65:  177-block  0
+branch  0 taken 57 (fallthrough)
+branch  1 taken 8
+       57:  178:            consNode<T> *next = current->next;
+       57:  179:            delete current;
+       57:  179-block  0
+call    0 returned 57
+       57:  180:            current = next;
+        -:  181:        }
+        8:  182:    }
+        -:  183:
+function _ZN8consListIiE11refCountIncEP8consNodeIiE called 307 returned 100% blocks executed 75%
+      307:  184:    static void refCountInc(consNode<T> *node) {
+     307*:  185:        if (!node) return;
+      307:  185-block  0
+branch  0 taken 0 (fallthrough)
+branch  1 taken 307
+    %%%%%:  185-block  1
+      307:  186:        node->ref_count++;
+      307:  186-block  0
+        -:  187:    }
+        -:  188:
+function _ZN8consListIiE11refCountDecEP8consNodeIiE called 275 returned 100% blocks executed 71%
+      275:  189:    static void refCountDec(consNode<T> *node) {
+      275:  190:        auto cur = node;
+      275:  191:        auto nodeDie = node;
+      550:  192:        std::queue<consNode<T> *> deleted_nodes;
+      275:  192-block  0
+call    0 returned 275
+branch  1 taken 275 (fallthrough)
+branch  2 taken 0 (throw)
+      275:  192-block  1
+call    3 returned 275
+    $$$$$:  192-block  2
+call    4 never executed
+      275:  193:        cur->ref_count--;
+      275:  194:        if (cur->ref_count == 0) {
+      275:  194-block  0
+branch  0 taken 3 (fallthrough)
+branch  1 taken 272
+        3:  195:            deleted_nodes.push(cur);
+        3:  195-block  0
+call    0 returned 3
+branch  1 taken 3 (fallthrough)
+branch  2 taken 0 (throw)
+        6:  196:            while (!deleted_nodes.empty()) {
+        6:  196-block  0
+call    0 returned 6
+branch  1 taken 3 (fallthrough)
+branch  2 taken 3
+        3:  197:                cur->next->ref_count--;
+        3:  198:                cur->prev->ref_count--;
+       3*:  199:                if (cur->next->ref_count == 0) deleted_nodes.push(cur->next);
+        3:  199-block  0
+branch  0 taken 0 (fallthrough)
+branch  1 taken 3
+    %%%%%:  199-block  1
+call    2 never executed
+branch  3 never executed
+branch  4 never executed
+       3*:  200:                if (cur->prev->ref_count == 0) deleted_nodes.push(cur->next);
+        3:  200-block  0
+branch  0 taken 0 (fallthrough)
+branch  1 taken 3
+    %%%%%:  200-block  1
+call    2 never executed
+branch  3 never executed
+branch  4 never executed
+        3:  201:                nodeDie = deleted_nodes.front();
+        3:  201-block  0
+call    0 returned 3
+        3:  202:                deleted_nodes.pop();
+call    0 returned 3
+        3:  203:                delete (nodeDie);
+call    0 returned 3
+        3:  204:                cur = deleted_nodes.front();
+call    0 returned 3
+        -:  205:            }
+        -:  206:        }
+        -:  207:
+        -:  208:        /*auto cur = node;
+        -:  209:        std::stack<consNode<T> *> deleted_nodes;
+        -:  210:        deleted_nodes.push(cur);
+        -:  211:        while (!deleted_nodes.empty()) {
+        -:  212:            cur = deleted_nodes.top();
+        -:  213:            deleted_nodes.pop();
+        -:  214:            cur->ref_count--;
+        -:  215:            if (cur->ref_count == 0) {
+        -:  216:                deleted_nodes.push(cur);
+        -:  217:                if (cur->next) {
+        -:  218:                    deleted_nodes.push(cur->next);
+        -:  219:                } else {
+        -:  220:                    if (cur->prev) {
+        -:  221:                        deleted_nodes.push(cur->prev);
+        -:  222:                    } else {
+        -:  223:                        deleted_nodes.pop();
+        -:  224:                        delete (cur);
+        -:  225:                    }
+        -:  226:                }
+        -:  227:            }
+        -:  228:        }*/
+        -:  229:
+        -:  230:        /*if (!node) return;
+        -:  231:        node->ref_count--;
+        -:  232:        //while
+        -:  233:        if (node->ref_count == 0) {
+        -:  234:            if (node->next)
+        -:  235:                refCountDec(node->next);
+        -:  236:            if (node->prev)
+        -:  237:                refCountDec(node->prev);
+        -:  238:            delete (node);
+        -:  239:        }*/
+      275:  240:    }
+        -:  241:
+        -:  242://    consList &operator=(const consList &list) = delete;
+        -:  243:
+        -:  244://    consList &operator=(consList &&list) = delete;
+        -:  245:
+        -:  246:    //todo
+function _ZN8consListIiE6insertE12consIteratorIiEi called 47 returned 100% blocks executed 75%
+       47:  247:    consIterator<T> insert(consIterator<T> iter, T data) {
+      47*:  248:        if (!iter) return iter;
+       47:  248-block  0
+call    0 returned 47
+branch  1 taken 0 (fallthrough)
+branch  2 taken 47
+    %%%%%:  248-block  1
+call    3 never executed
+branch  4 never executed
+branch  5 never executed
+    %%%%%:  248-block  2
+       47:  249:        consNode<T> *newNode = new consNode<T>(std::move(data), 2);
+       47:  249-block  0
+call    0 returned 47
+call    1 returned 47
+branch  2 taken 47 (fallthrough)
+branch  3 taken 0 (throw)
+       47:  249-block  1
+call    4 returned 47
+       47:  250:        newNode->prev = iter.current->prev;
+       47:  251:        newNode->next = iter.current;
+       47:  252:        iter.current->prev->next = newNode;
+       47:  253:        iter.current->prev = newNode;
+       94:  254:        consIterator<T> newIter(newNode);
+call    0 returned 47
+       47:  254-block  0
+call    1 returned 47
+    $$$$$:  254-block  1
+call    2 never executed
+       47:  255:        size++;
+       47:  256:        return newIter;
+call    0 returned 47
+branch  1 taken 47 (fallthrough)
+branch  2 taken 0 (throw)
+       47:  256-block  0
+        -:  257:    }
+        -:  258:
+function _ZN8consListIiE8pushBackERKi called 35 returned 100% blocks executed 100%
+       35:  259:    void pushBack(const T &data) {
+       35:  260:        pushBack(T(data));
+       35:  260-block  0
+call    0 returned 35
+branch  1 taken 35 (fallthrough)
+branch  2 taken 0 (throw)
+       35:  261:    }
+       35:  261-block  0
+        -:  262:
+function _ZN8consListIiE8pushBackEOi called 45 returned 100% blocks executed 62%
+       45:  263:    void pushBack(T &&data) {
+       45:  264:        consIterator<T> iter(Tail);
+       45:  264-block  0
+call    0 returned 45
+    $$$$$:  264-block  1
+call    1 never executed
+       45:  265:        insert(iter, data);
+call    0 returned 45
+branch  1 taken 45 (fallthrough)
+branch  2 taken 0 (throw)
+       45:  265-block  0
+call    3 returned 45
+branch  4 taken 45 (fallthrough)
+branch  5 taken 0 (throw)
+       45:  265-block  1
+call    6 returned 45
+call    7 returned 45
+call    8 returned 45
+    $$$$$:  265-block  2
+call    9 never executed
+    $$$$$:  265-block  3
+       45:  266:    }
+        -:  267:
+function _ZN8consListIiE9pushFrontERKi called 1 returned 100% blocks executed 100%
+        1:  268:    void pushFront(const T &data) {
+        1:  269:        pushFront(T(data));
+        1:  269-block  0
+call    0 returned 1
+branch  1 taken 1 (fallthrough)
+branch  2 taken 0 (throw)
+        1:  270:    }
+        1:  270-block  0
+        -:  271:
+function _ZN8consListIiE9pushFrontEOi called 1 returned 100% blocks executed 62%
+        1:  272:    void pushFront(T &&data) {
+        1:  273:        consIterator<T> iter(Head->next);
+        1:  273-block  0
+call    0 returned 1
+    $$$$$:  273-block  1
+call    1 never executed
+        1:  274:        insert(iter, data);
+call    0 returned 1
+branch  1 taken 1 (fallthrough)
+branch  2 taken 0 (throw)
+        1:  274-block  0
+call    3 returned 1
+branch  4 taken 1 (fallthrough)
+branch  5 taken 0 (throw)
+        1:  274-block  1
+call    6 returned 1
+call    7 returned 1
+call    8 returned 1
+    $$$$$:  274-block  2
+call    9 never executed
+    $$$$$:  274-block  3
+        1:  275:    }
+        -:  276:
+function _ZN8consListIiE5eraseE12consIteratorIiE called 6 returned 100% blocks executed 91%
+        6:  277:    consIterator<T> erase(consIterator<T> iter) {
+        6:  278:        consIterator<T> iterOut(iter);
+        6:  278-block  0
+call    0 returned 6
+        6:  279:        iterOut++;
+call    0 returned 6
+branch  1 taken 6 (fallthrough)
+branch  2 taken 0 (throw)
+        6:  279-block  0
+call    3 returned 6
+        6:  280:        refCountInc(iter.current->next);
+call    0 returned 6
+        6:  281:        refCountInc(iter.current->prev);
+call    0 returned 6
+        6:  282:        iter.current->prev->next = iter.current->next;
+        6:  283:        iter.current->next->prev = iter.current->prev;
+        6:  284:        size--;
+        6:  285:        iter.current->deleted = true;
+        6:  286:        refCountDec(iter.current);
+call    0 returned 6
+branch  1 taken 6 (fallthrough)
+branch  2 taken 0 (throw)
+        6:  287:        refCountDec(iter.current);
+        6:  287-block  0
+call    0 returned 6
+branch  1 taken 6 (fallthrough)
+branch  2 taken 0 (throw)
+        6:  288:        return iterOut;
+        6:  288-block  0
+        6:  288-block  1
+        -:  289:    }
+        -:  290:
+function _ZN8consListIiE5beginEv called 16 returned 100% blocks executed 100%
+       16:  291:    consIterator<T> begin() noexcept {
+       16:  292:        consIterator<T> iter(Head->next);
+       16:  292-block  0
+call    0 returned 16
+       16:  293:        return iter;
+        -:  294:    }
+        -:  295:
+function _ZN8consListIiE3endEv called 2 returned 100% blocks executed 100%
+        2:  296:    consIterator<T> end() noexcept {
+        2:  297:        consIterator<T> iter(Tail);
+        2:  297-block  0
+call    0 returned 2
+        2:  298:        return iter;
+        -:  299:    }
+        -:  300:
+function _ZN8consListIiE7getSizeEv called 7 returned 100% blocks executed 100%
+        7:  301:    unsigned int getSize() {
+        7:  302:        return size;
+        7:  302-block  0
+        -:  303:    }
+        -:  304:
+        -:  305:private:
+        -:  306:    consNode<T> *Head, *Tail;
+        -:  307:    unsigned int size;
+        -:  308:
+        -:  309:    friend class consIterator<T>;
+        -:  310:};
+        -:  311:
+        -:  312:
+        -:  313:
+        -:  314:
+        -:  315:#endif //PROJECTCONSIST4_CONSIST_HPP
