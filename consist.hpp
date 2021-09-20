@@ -9,9 +9,17 @@
 // Created by илья on 05.03.2021.
 //
 
-
 #include <iostream>
 #include <queue>
+
+#include <numeric>
+#include <cmath>
+#include <memory>
+
+#include <stdexcept>
+#include <shared_mutex>
+#include <mutex>
+#include <iostream>
 
 template<typename T>
 class consList;
@@ -24,21 +32,23 @@ class consIterator;
 template<typename T>
 class consNode {
 public:
-//    consNode() : next(nullptr), prev(nullptr), data(nullptr), ref_count(0) {};
+
     consNode() = default;
 
-//    consNode(T data) : next(nullptr), prev(nullptr), data(data), ref_count(0) {}
     consNode(T data, int ref_count) :
             data(std::move(data)), prev(this), next(this), deleted(false), ref_count(ref_count) {}
 
     consNode(T data, consList<T> *list) : consNode(data, 2) {}
-//    consNode(const consNode<T> &) = delete;
 
-//    void operator=(const consNode<T> &) = delete;
+    consNode(const consNode<T> &) = delete;
+
+    ~consNode() = default;
+
+    void operator=(const consNode<T> &) = delete;
 
 private:
     T data;
-    consNode *next, *prev;
+    consNode<T> *next, *prev;
     bool deleted{};
     unsigned int ref_count{};
 
@@ -53,24 +63,27 @@ template<typename T>
 class consIterator {
 public:
 
-//    consIterator() noexcept = default;
+    consIterator<T>() noexcept = default;
 
-    consIterator(const consIterator &iter) : current(iter.current) {
-        consList<T>::refCountInc(current);
+    consIterator<T>(const consIterator<T> &iter) : current(iter.current), container(iter.container) {
+        container->refCountInc(current);
     }
 
-    explicit consIterator(consNode<T> *newNode) : current(newNode) {
-        consList<T>::refCountInc(current);
+    consIterator<T>(consNode<T> *_newNode, consList<T> *_list) : current(_newNode), container(_list) {
+        container->refCountInc(current);
     }
 
-    ~consIterator() {
+    ~consIterator<T>() {
         if (current) {
-            consList<T>::refCountDec(current);
+            container->refCountDec(current);
             if (current->ref_count == 0) current = nullptr;
         }
     }
 
-    consIterator &operator=(const consIterator &right) {
+    consIterator<T> &operator=(const consIterator<T> &right) {
+        if (container != right.container)
+            std::unique_lock<std::shared_mutex> lock2(right.container->mutex_, std::try_to_lock);
+        std::unique_lock<std::shared_mutex> lock1(container->mutex_, std::try_to_lock);
         consList<T>::refCountDec(current);
         this->current = right.current;
         consList<T>::refCountInc(current);
@@ -78,67 +91,114 @@ public:
     }
 
     T &operator*() const {
+        std::shared_lock<std::shared_mutex> lock(container->mutex_);
         /*if (current->deleted) throw (std::out_of_range("Error 1: Invalid index!"));*/
         return current->data;
     }
 
-    /*T *operator->() const {
-        if (current->deleted)
-            throw (std::out_of_range("Error 2: Invalid index!"));
+    T *operator->() const {
+        std::shared_lock<std::shared_mutex> lock(container->mutex_);
+        /*if (current->deleted) throw (std::out_of_range("Error 2: Invalid index!"));*/
         return &(current->data);
-    }*/
+    }
 
-    consIterator operator++() {
+    //prefix
+    consIterator<T> &operator++() {
+        std::unique_lock<std::shared_mutex> lock(container->mutex_);
         if (!current->next) throw (std::out_of_range("Error 3: Invalid index!"));
-        current = current->next;
-        if (current) {
-            while (this->current->deleted && current->next) current = current->next;
-        }
+        consNode<T> *prevNode = current;
+        consNode<T> *newNode = current->next;
+        if (newNode)
+            while (newNode->deleted && newNode->next)
+                newNode = newNode->next;
+        container->refCountInc(newNode);
+        this->current = newNode;
+        container->refCountDec(prevNode);
         return *this;
     }
 
-    consIterator operator++(T) {
+    //postfix
+    consIterator operator++(int) {
+        std::unique_lock<std::shared_mutex> lock(container->mutex_);
         if (!current->next) throw (std::out_of_range("Error 4: Invalid index!"));
-        consIterator iter(current);
-        if (iter.current->next) {
-            current = iter.current->next;
-            while (current->deleted && current->next) current = current->next;
+        consNode<T> *prevNode = current;
+        consIterator<T> iter(*this);
+        if (current->next) {
+            consNode<T> *newNode = current->next;
+            if (newNode)
+                while (newNode->deleted && newNode->next)
+                    newNode = newNode->next;
+            container->refCountInc(newNode);
+            this->current = newNode;
+            container->refCountDec(prevNode);
         }
         return iter;
     }
 
-    consIterator operator--() {
+    //prefix
+    consIterator<T> operator--() {
+        std::unique_lock<std::shared_mutex> lock(container->mutex_);
         if (!current->prev->prev) throw (std::out_of_range("Error 5: Invalid index!"));
-        if (current) {
-            current = current->prev;
-            while (this->current->deleted && current->prev) current = current->prev;
-        }
+        consNode<T> *prevNode = current;
+        consNode<T> *newNode = current->prev;
+        if (newNode)
+            while (newNode->deleted && newNode->prev)
+                newNode = newNode->prev;
+        container->refCountInc(newNode);
+        this->current = newNode;
+        container->refCountDec(prevNode);
         return *this;
     }
 
-    consIterator operator--(T) {
+    //postfix
+    consIterator operator--(int) {
+        std::unique_lock<std::shared_mutex> lock(container->mutex_);
         if (!current->prev->prev) throw (std::out_of_range("Error 6: Invalid index!"));
-        consIterator iter(current);
-        if (iter.current->prev) {
-            current = iter.current->prev;
-            while (current->deleted && current->prev) current = current->prev;
-        }
-        return iter;
+        consNode<T> *prevNode = current;
+        consNode<T> *newNode = current->prev;
+        consIterator<T> new_iter(*this);
+        if (newNode)
+            while (newNode->deleted && newNode->prev)
+                newNode = newNode->prev;
+        container->refCountInc(newNode);
+        this->current = newNode;
+        container->refCountDec(prevNode);
+        return new_iter;
     }
 
     friend bool operator==(const consIterator<T> &a, const consIterator<T> &b) {
+        if (a.container != b.container)
+            std::shared_lock<std::shared_mutex> lock2(a.container->mutex_);
+        std::shared_lock<std::shared_mutex> lock1(b.container->mutex_);
         return a.current == b.current;
     }
 
     friend bool operator!=(const consIterator<T> &a, const consIterator<T> &b) {
+        if (a.container != b.container)
+            std::shared_lock<std::shared_mutex> lock2(a.container->mutex_);
+        std::shared_lock<std::shared_mutex> lock1(b.container->mutex_);
         return !(a == b);
     }
 
-    explicit operator bool() const {
+    operator bool() {
+        std::shared_lock<std::shared_mutex> lock(container->mutex_);
         return current;
     }
 
-//    consIterator operator=() const;
+    T get() {
+        std::shared_lock<std::shared_mutex> lock(container->mutex_);
+        return current->data;
+    }
+
+    void set(T _data) {
+        std::unique_lock<std::shared_mutex> lock(container->mutex_);
+        current->data = _data;
+    }
+
+    int refCount() {
+        std::shared_lock<std::shared_mutex> lock(container->mutex_);
+        return current->ref_count;
+    }
 
 private:
     consList<T> *container;
@@ -152,7 +212,10 @@ private:
 template<typename T>
 class consList {
 public:
+    std::shared_mutex mutex_;
+
     consList() : Head(nullptr), Tail(nullptr), size(0) {
+        std::unique_lock<std::shared_mutex> lock(mutex_);
         Tail = new consNode<T>();
         Head = new consNode<T>();
         Tail->prev = Head;
@@ -163,16 +226,20 @@ public:
         refCountInc(Tail);
     }
 
-//    consList(const consList &iter) = delete;
+    consList(const consList<T> &iter) = delete;
 
-//    consList(consList &&list) = delete;
+    consList(consList<T> &&list) = delete;
 
     consList(std::initializer_list<T> list) : consList() {
-        for (auto iter = list.begin(); iter < list.end(); iter++)
-            pushBack(*iter);
+        std::unique_lock<std::shared_mutex> lock(mutex_);
+        for (auto iter = list.begin(); iter < list.end(); iter++) {
+            consIterator<T> iterTail(Tail, this);
+            consList<T>::insert_logic(iterTail, *iter);
+        }
     }
 
-    ~consList() {
+    ~consList<T>() {
+        std::unique_lock<std::shared_mutex> lock(mutex_);
         consNode<T> *current = Head;
         while (current != nullptr) {
             consNode<T> *next = current->next;
@@ -187,6 +254,7 @@ public:
     }
 
     static void refCountDec(consNode<T> *node) {
+        if (!node) return;
         auto cur = node;
         auto nodeDie = node;
         std::queue<consNode<T> *> deleted_nodes;
@@ -197,119 +265,113 @@ public:
                 cur->next->ref_count--;
                 cur->prev->ref_count--;
                 if (cur->next->ref_count == 0) deleted_nodes.push(cur->next);
-                if (cur->prev->ref_count == 0) deleted_nodes.push(cur->next);
+                if (cur->prev->ref_count == 0) deleted_nodes.push(cur->prev);
                 nodeDie = deleted_nodes.front();
                 deleted_nodes.pop();
                 delete (nodeDie);
                 cur = deleted_nodes.front();
             }
         }
-
-        /*auto cur = node;
-        std::stack<consNode<T> *> deleted_nodes;
-        deleted_nodes.push(cur);
-        while (!deleted_nodes.empty()) {
-            cur = deleted_nodes.top();
-            deleted_nodes.pop();
-            cur->ref_count--;
-            if (cur->ref_count == 0) {
-                deleted_nodes.push(cur);
-                if (cur->next) {
-                    deleted_nodes.push(cur->next);
-                } else {
-                    if (cur->prev) {
-                        deleted_nodes.push(cur->prev);
-                    } else {
-                        deleted_nodes.pop();
-                        delete (cur);
-                    }
-                }
-            }
-        }*/
-
-        /*if (!node) return;
-        node->ref_count--;
-        //while
-        if (node->ref_count == 0) {
-            if (node->next)
-                refCountDec(node->next);
-            if (node->prev)
-                refCountDec(node->prev);
-            delete (node);
-        }*/
     }
 
-//    consList &operator=(const consList &list) = delete;
+    consList<T> &operator=(const consList &list) = delete;
 
-//    consList &operator=(consList &&list) = delete;
+    consList<T> &operator=(consList &&list) = delete;
 
-    //todo
     consIterator<T> insert(consIterator<T> iter, T data) {
-        if (!iter) return iter;
-        consNode<T> *newNode = new consNode<T>(std::move(data), 2);
-        newNode->prev = iter.current->prev;
-        newNode->next = iter.current;
-        iter.current->prev->next = newNode;
-        iter.current->prev = newNode;
-        consIterator<T> newIter(newNode);
-        size++;
-        return newIter;
+        std::unique_lock<std::shared_mutex> lock(mutex_);
+        return insert_logic(iter, data);
     }
+
 
     void pushBack(const T &data) {
-        pushBack(T(data));
+        std::unique_lock<std::shared_mutex> lock(mutex_);
+        consIterator<T> iter(Tail, this);
+        insert_logic(iter, T(data));
     }
 
     void pushBack(T &&data) {
-        consIterator<T> iter(Tail);
-        insert(iter, data);
+        std::unique_lock<std::shared_mutex> lock(mutex_);
+        consIterator<T> iter(Tail, this);
+        insert_logic(iter, data);
     }
 
     void pushFront(const T &data) {
-        pushFront(T(data));
+        std::unique_lock<std::shared_mutex> lock(mutex_);
+        consIterator<T> iter(Head->next, this);
+        insert_logic(iter, T(data));
     }
 
     void pushFront(T &&data) {
-        consIterator<T> iter(Head->next);
-        insert(iter, data);
+        std::unique_lock<std::shared_mutex> lock(mutex_);
+        consIterator<T> iter(Head->next, this);
+        insert_logic(iter, data);
     }
 
     consIterator<T> erase(consIterator<T> iter) {
-        consIterator<T> iterOut(iter);
-        iterOut++;
-        refCountInc(iter.current->next);
-        refCountInc(iter.current->prev);
-        iter.current->prev->next = iter.current->next;
-        iter.current->next->prev = iter.current->prev;
-        size--;
-        iter.current->deleted = true;
-        refCountDec(iter.current);
-        refCountDec(iter.current);
-        return iterOut;
+        std::unique_lock<std::shared_mutex> lock(mutex_);
+        return erase_logic(iter);
     }
 
     consIterator<T> begin() noexcept {
-        consIterator<T> iter(Head->next);
+        std::unique_lock<std::shared_mutex> lock(mutex_);
+        consIterator<T> iter(Head->next, this);
         return iter;
     }
 
     consIterator<T> end() noexcept {
-        consIterator<T> iter(Tail);
+        std::unique_lock<std::shared_mutex> lock(mutex_);
+        consIterator<T> iter(Tail, this);
         return iter;
     }
 
-    unsigned int getSize() {
+    std::size_t getSize() noexcept {
+        std::shared_lock<std::shared_mutex> lock(mutex_);
         return size;
+    }
+
+    bool empty() noexcept {
+        std::shared_lock<std::shared_mutex> lock(mutex_);
+        return Head->next == Tail;
     }
 
 private:
     consNode<T> *Head, *Tail;
-    unsigned int size;
+    std::size_t size;
+
+    consIterator<T> insert_logic(consIterator<T> iter, T data) {
+        if (iter.current == nullptr) return iter;
+        consNode<T> *newNode = new consNode<T>{std::move(data), 2};
+        newNode->prev = iter.current->prev;
+        newNode->next = iter.current;
+        iter.current->prev->next = newNode;
+        iter.current->prev = newNode;
+        consIterator<T> newIter(newNode, this);
+        size++;
+        return newIter;
+    }
+
+    consIterator<T> erase_logic(consIterator<T> iter) {
+        if (iter.current->deleted) return iter;
+        auto outIter = consIterator<T>(iter.current->next, this);
+        refCountInc(iter.current->next);
+        refCountInc(iter.current->prev);
+        if (iter.current == Head->next)
+            Head->next = iter.current->next;
+        else
+            iter.current->prev->next = iter.current->next;
+        if (iter.current == Tail->prev)
+            Tail->prev = iter.current->prev;
+        else
+            iter.current->next->prev = iter.current->prev;
+        size--;
+        iter.current->deleted = true;
+        refCountDec(iter.current);
+        refCountDec(iter.current);
+        return outIter;
+    }
 
     friend class consIterator<T>;
 };
-
-
-
 
 #endif //PROJECTCONSIST4_CONSIST_HPP
